@@ -1,0 +1,9 @@
+# depslib dependency file v1.0
+1731538866 source:d:\stasy\stackqueue\main.cpp
+	"StackQueue.h"
+	<iostream>
+
+1731540058 d:\stasy\stackqueue\stackqueue.h
+	<iostream>
+	<stdexcept>
+
