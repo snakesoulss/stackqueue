@@ -4,82 +4,56 @@
 #include <iostream>
 #include <stdexcept>
 
-// Узел односвязного списка
-template <typename T>
-struct Node {
-    T data;
-    Node* next;
-    Node(const T& value) : data(value), next(nullptr) {}
-};
+using namespace std;
 
-// Класс стек
 template <typename T>
 class Stack {
-private:
-    Node<T>* top; // указатель на вершину стека
-    size_t size;  // размер стека
-
 public:
-    // Конструкторы и деструктор
-    Stack() : top(nullptr), size(0) {}
+    Stack();
     Stack(const Stack& other);
     Stack(Stack&& other) noexcept;
-    ~Stack();
-
-    // Операторы присваивания
     Stack& operator=(const Stack& other);
     Stack& operator=(Stack&& other) noexcept;
+    ~Stack();
 
-    // Методы стека
-    void Push(const T& value);
-    void Pop();
+    void Add(const T& value);       // Push
+    void Remove();                 // Pop
     bool IsEmpty() const;
-    T& GetFront() const;
+    T& Peek();
+    const T& Peek() const;
+    void Display() const;
+
+private:
+    struct Node {
+        T value;
+        Node* next;
+        Node(T val) : value(val), next(nullptr) {}
+    };
+
+    Node* top;
+
     void Clear();
-    size_t GetSize() const;
-
-    // Дружественные функции для ввода и вывода
-    template <typename U>
-    friend std::ostream& operator<<(std::ostream& os, const Stack<U>& stack);
-
-    template <typename U>
-    friend std::istream& operator>>(std::istream& is, Stack<U>& stack);
+    void CopyFrom(const Stack& other);
 };
 
-// Реализация методов Stack
 template <typename T>
-Stack<T>::Stack(const Stack& other) : top(nullptr), size(0) {
-    Node<T>* temp = other.top;
-    Stack<T> reverseTemp;
-    while (temp) {
-        reverseTemp.Push(temp->data);
-        temp = temp->next;
-    }
-    temp = reverseTemp.top;
-    while (temp) {
-        Push(temp->data);
-        temp = temp->next;
-    }
+Stack<T>::Stack() : top(nullptr) {}
+
+template <typename T>
+Stack<T>::Stack(const Stack& other) : top(nullptr) {
+    CopyFrom(other);
 }
 
 template <typename T>
-Stack<T>::Stack(Stack&& other) noexcept : top(other.top), size(other.size) {
+Stack<T>::Stack(Stack&& other) noexcept : top(other.top) {
     other.top = nullptr;
-    other.size = 0;
-}
-
-template <typename T>
-Stack<T>::~Stack() {
-    Clear();
 }
 
 template <typename T>
 Stack<T>& Stack<T>::operator=(const Stack& other) {
     if (this != &other) {
         Clear();
-        Stack temp(other);
-        std::swap(top, temp.top);
-        size = other.size;
+        CopyFrom(other);
     }
     return *this;
 }
@@ -89,28 +63,21 @@ Stack<T>& Stack<T>::operator=(Stack&& other) noexcept {
     if (this != &other) {
         Clear();
         top = other.top;
-        size = other.size;
         other.top = nullptr;
-        other.size = 0;
     }
     return *this;
 }
 
 template <typename T>
-void Stack<T>::Push(const T& value) {
-    Node<T>* newNode = new Node<T>(value);
-    newNode->next = top;
-    top = newNode;
-    ++size;
+Stack<T>::~Stack() {
+    Clear();
 }
 
 template <typename T>
-void Stack<T>::Pop() {
-    if (IsEmpty()) throw std::out_of_range("Stack is empty");
-    Node<T>* temp = top;
-    top = top->next;
-    delete temp;
-    --size;
+void Stack<T>::Add(const T& value) {
+    Node* newNode = new Node(value);
+    newNode->next = top;
+    top = newNode;
 }
 
 template <typename T>
@@ -119,106 +86,111 @@ bool Stack<T>::IsEmpty() const {
 }
 
 template <typename T>
-T& Stack<T>::GetFront() const {
-    if (IsEmpty()) throw std::out_of_range("Stack is empty");
-    return top->data;
+void Stack<T>::Remove() {
+    if (IsEmpty()) {
+        throw runtime_error("Stack is empty");
+    }
+    Node* temp = top;
+    top = top->next;
+    delete temp;
+}
+
+template <typename T>
+T& Stack<T>::Peek() {
+    if (IsEmpty()) throw runtime_error("Stack is empty");
+    return top->value;
+}
+
+template <typename T>
+const T& Stack<T>::Peek() const {
+    if (IsEmpty()) throw runtime_error("Stack is empty");
+    return top->value;
+}
+
+template <typename T>
+void Stack<T>::Display() const {
+    Node* current = top;
+    while (current) {
+        cout << current->value << " ";
+        current = current->next;
+    }
+    cout << endl;
 }
 
 template <typename T>
 void Stack<T>::Clear() {
-    while (!IsEmpty()) Pop();
-}
-
-template <typename T>
-size_t Stack<T>::GetSize() const {
-    return size;
-}
-
-template <typename T>
-std::ostream& operator<<(std::ostream& os, const Stack<T>& stack) {
-    Node<T>* temp = stack.top;
-    while (temp) {
-        os << temp->data << " ";
-        temp = temp->next;
+    while (!IsEmpty()) {
+        Remove();
     }
-    return os;
 }
 
 template <typename T>
-std::istream& operator>>(std::istream& is, Stack<T>& stack) {
-    T value;
-    while (is >> value) {
-        stack.Push(value);
+void Stack<T>::CopyFrom(const Stack& other) {
+    if (!other.top) return;
+
+    Node* source = other.top;
+    top = new Node(source->value);
+    Node* target = top;
+    source = source->next;
+
+    while (source) {
+        target->next = new Node(source->value);
+        target = target->next;
+        source = source->next;
     }
-    return is;
 }
 
-// Класс очередь
+// Queue Implementation
 template <typename T>
 class Queue {
-private:
-    Node<T>* front; // указатель на начало очереди
-    Node<T>* rear;  // указатель на конец очереди
-    size_t size;    // размер очереди
-
 public:
-    // Конструкторы и деструктор
-    Queue() : front(nullptr), rear(nullptr), size(0) {}
+    Queue();
     Queue(const Queue& other);
     Queue(Queue&& other) noexcept;
-    ~Queue();
-
-    // Операторы присваивания
     Queue& operator=(const Queue& other);
     Queue& operator=(Queue&& other) noexcept;
+    ~Queue();
 
-    // Методы очереди
-    void Push(const T& value);
-    void Pop();
+    void Enqueue(const T& value);
+    void Dequeue();
     bool IsEmpty() const;
-    T& GetFront() const;
+    T& Peek();
+    const T& Peek() const;
+    void Display() const;
+
+private:
+    struct Node {
+        T value;
+        Node* next;
+        Node(T val) : value(val), next(nullptr) {}
+    };
+
+    Node* front;
+    Node* rear;
+
     void Clear();
-    size_t GetSize() const;
-
-    // Дружественные функции для ввода и вывода
-    template <typename U>
-
-friend std::ostream& operator<<(std::ostream& os, const Queue<U>& queue);
-
-    template <typename U>
-    friend std::istream& operator>>(std::istream& is, Queue<U>& queue);
+    void CopyFrom(const Queue& other);
 };
 
-// Реализация методов Queue
 template <typename T>
-Queue<T>::Queue(const Queue& other) : front(nullptr), rear(nullptr), size(0) {
-    Node<T>* temp = other.front;
-    while (temp) {
-        Push(temp->data);
-        temp = temp->next;
-    }
+Queue<T>::Queue() : front(nullptr), rear(nullptr) {}
+
+template <typename T>
+Queue<T>::Queue(const Queue& other) : front(nullptr), rear(nullptr) {
+    CopyFrom(other);
 }
 
 template <typename T>
-Queue<T>::Queue(Queue&& other) noexcept : front(other.front), rear(other.rear), size(other.size) {
-    other.front = other.rear = nullptr;
-    other.size = 0;
-}
-
-template <typename T>
-Queue<T>::~Queue() {
-    Clear();
+Queue<T>::Queue(Queue&& other) noexcept : front(other.front), rear(other.rear) {
+    other.front = nullptr;
+    other.rear = nullptr;
 }
 
 template <typename T>
 Queue<T>& Queue<T>::operator=(const Queue& other) {
     if (this != &other) {
         Clear();
-        Node<T>* temp = other.front;
-        while (temp) {
-            Push(temp->data);
-            temp = temp->next;
-        }
+        CopyFrom(other);
     }
     return *this;
 }
@@ -229,33 +201,26 @@ Queue<T>& Queue<T>::operator=(Queue&& other) noexcept {
         Clear();
         front = other.front;
         rear = other.rear;
-        size = other.size;
-        other.front = other.rear = nullptr;
-        other.size = 0;
+        other.front = nullptr;
+        other.rear = nullptr;
     }
     return *this;
 }
 
 template <typename T>
-void Queue<T>::Push(const T& value) {
-    Node<T>* newNode = new Node<T>(value);
-    if (IsEmpty()) {
-        front = rear = newNode;
-    } else {
-        rear->next = newNode;
-        rear = newNode;
-    }
-    ++size;
+Queue<T>::~Queue() {
+    Clear();
 }
 
 template <typename T>
-void Queue<T>::Pop() {
-    if (IsEmpty()) throw std::out_of_range("Queue is empty");
-    Node<T>* temp = front;
-    front = front->next;
-    delete temp;
-    if (!front) rear = nullptr;
-    --size;
+void Queue<T>::Enqueue(const T& value) {
+    Node* newNode = new Node(value);
+    if (IsEmpty()) {
+        front = newNode;
+    } else {
+        rear->next = newNode;
+    }
+    rear = newNode;
 }
 
 template <typename T>
@@ -264,38 +229,55 @@ bool Queue<T>::IsEmpty() const {
 }
 
 template <typename T>
-T& Queue<T>::GetFront() const {
-    if (IsEmpty()) throw std::out_of_range("Queue is empty");
-    return front->data;
+void Queue<T>::Dequeue() {
+    if (IsEmpty()) {
+        throw runtime_error("Queue is empty");
+    }
+    Node* temp = front;
+    front = front->next;
+    if (!front) {
+        rear = nullptr;
+    }
+    delete temp;
+}
+
+template <typename T>
+T& Queue<T>::Peek() {
+    if (IsEmpty()) throw runtime_error("Queue is empty");
+    return front->value;
+}
+
+template <typename T>
+const T& Queue<T>::Peek() const {
+    if (IsEmpty()) throw runtime_error("Queue is empty");
+    return front->value;
+}
+
+template <typename T>
+void Queue<T>::Display() const {
+    Node* current = front;
+    while (current) {
+        cout << current->value << " ";
+        current = current->next;
+    }
+    cout << endl;
 }
 
 template <typename T>
 void Queue<T>::Clear() {
-    while (!IsEmpty()) Pop();
-}
-
-template <typename T>
-size_t Queue<T>::GetSize() const {
-    return size;
-}
-
-template <typename T>
-std::ostream& operator<<(std::ostream& os, const Queue<T>& queue) {
-    Node<T>* temp = queue.front;
-    while (temp) {
-        os << temp->data << " ";
-        temp = temp->next;
+    while (!IsEmpty()) {
+        Dequeue();
     }
-    return os;
 }
 
 template <typename T>
-std::istream& operator>>(std::istream& is, Queue<T>& queue) {
-    T value;
-    while (is >> value) {
-        queue.Push(value);
-    }
-    return is;
-}
+void Queue<T>::CopyFrom(const Queue& other) {
+    if (!other.front) return;
 
+    Node* source = other.front;
+    while (source) {
+        Enqueue(source->value);
+        source = source->next;
+    }
+}
 #endif // STACKQUEUE_H
